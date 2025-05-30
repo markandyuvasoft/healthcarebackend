@@ -1,0 +1,154 @@
+
+// export const bookAppointment = async (req, res) => {
+//   try {
+//     const { doctorId } = req.params;
+//     const userId = req.user.id;
+//     const { appointmentDateTime } = req.body;
+
+//     if (!userId) {
+//       return res.status(401).json({ message: "User ID not found in request" });
+//     }
+
+// const appointmentStart = moment(appointmentDateTime, "DD-MM-YYYY HH:mm");
+
+// const appointmentEnd = moment(appointmentStart).add(30, "minutes");
+
+// const overlappingAppointment = await Appointment.findOne({
+//   doctorId,
+//   status: "scheduled",
+//   $or: [
+//     {
+//       appointmentDateTime: { $lt: appointmentEnd.toDate() },
+//       appointmentEndTime: { $gt: appointmentStart.toDate() },
+//     },
+//   ],
+// });
+
+// if (overlappingAppointment) {
+//   return res
+//     .status(400)
+//     .json({ message: "Doctor is already booked during this time slot." });
+// }
+
+// const newAppointment = new Appointment({
+//   doctorId,
+//   userId,
+//   appointmentDateTime: appointmentStart.toDate(),
+//   appointmentEndTime: appointmentEnd.toDate(),
+// });
+
+// await newAppointment.save();
+
+// res.status(200).json({
+//   message: "Appointment booked successfully",
+//   appointment: newAppointment,
+// });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
+
+
+
+// import mongoose from "mongoose";
+
+// const AppointmentSchema = new mongoose.Schema(
+//   {
+//     doctorId: {
+//       type: mongoose.Schema.Types.ObjectId,
+//       ref: "User",
+//     },
+
+//     userId: {
+//       type: mongoose.Schema.Types.ObjectId,
+//       ref: "User",
+//     },
+
+//     appointmentDateTime: {
+//       type: Date,
+//       required: true,
+//     },
+
+//     appointmentEndTime: {
+//       type: Date,
+//       required: true,
+//     },
+
+//     reason : {
+//         type : String
+//     },
+
+//     status: {
+//       type: String,
+//       enum: ["upcoming", "scheduled", "complete",  "cancelled"],
+//       default: "upcoming",
+//     },
+//   },
+//   { timestamps: true }
+// );
+
+// const Appointment = mongoose.model("Appointment", AppointmentSchema);
+
+// export default Appointment;
+
+
+
+
+
+
+
+
+
+
+
+
+
+// export const cancelDoctorAppointment = async (req, res) => {
+//   try {
+//     const userId = req.user.id;
+//     const { doctorId } = req.params;
+//     const { appointmentDateTime, reason } = req.body;
+
+//     if (!userId) {
+//       return res.status(401).json({ message: "User ID not found in request" });
+//     }
+
+//     if (!appointmentDateTime) {
+//       return res
+//         .status(400)
+//         .json({ message: "appointmentDateTime is required" });
+//     }
+
+//     const parsedDate = moment(appointmentDateTime, "DD-MM-YYYY HH : mm", true);
+
+//     if (!parsedDate.isValid()) {
+//       return res
+//         .status(400)
+//         .json({ message: "Invalid date format. Use DD-MM-YYYY HH : mm" });
+//     }
+
+//     const appointment = await Appointment.findOne({
+//       userId,
+//       doctorId,
+//       appointmentDateTime: parsedDate.toDate(),
+//       status: { $in: ["scheduled", "upcoming"] },
+//     });
+
+//     if (!appointment) {
+//       return res
+//         .status(404)
+//         .json({ message: "No matching appointment found to cancel" });
+//     }
+
+//     appointment.status = "cancelled";
+//     appointment.reason = reason;
+//     await appointment.save();
+
+//     res.status(200).json({
+//       message: "Appointment cancelled successfully",
+//       appointment,
+//     });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };

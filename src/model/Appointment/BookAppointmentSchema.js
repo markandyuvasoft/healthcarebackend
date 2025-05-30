@@ -12,23 +12,28 @@ const AppointmentSchema = new mongoose.Schema(
       ref: "User",
     },
 
-    appointmentDateTime: {
-      type: Date,
+    appointmentDate: {
+      type: String,
+      required: true,
+    },
+
+    appointmentTime: {
+      type: String,
       required: true,
     },
 
     appointmentEndTime: {
-      type: Date,
+      type: String,
       required: true,
     },
 
-    reason : {
-        type : String
+    reason: {
+      type: String,
     },
 
     status: {
       type: String,
-      enum: ["upcoming", "scheduled", "complete",  "cancelled"],
+      enum: ["upcoming", "scheduled", "complete", "cancelled"],
       default: "upcoming",
     },
   },

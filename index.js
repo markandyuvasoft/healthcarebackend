@@ -4,6 +4,7 @@ import { connectDb } from "./config/db.js";
 import cors from "cors"; 
 import morgan from "morgan"; 
 import userRouter from "./src/routes/Auth/AuthRouter.js";
+import AdminRouter from "./src/routes/Admin/adminRouter.js";
 
 
 
@@ -25,7 +26,7 @@ app.use("/api/v1/", express.static("public/upload"));
 
 
 app.use("/api/v1", userRouter)
-// app.use("/api/v1", courseRouter)
+app.use("/api/v1", AdminRouter)
 // app.use("/api/v1", flashcardCategoryRouter)
 // app.use("/api/v1", lessonRouter)
 // app.use("/api/v1", AdminRouter)

@@ -22,7 +22,7 @@ const HospitalSchema = new mongoose.Schema(
     phoneNumber: { type: String },
     hospitalEmail: { type: String },
     website: { type: String },
-    establishedYear: { type: Number },
+    establishedYear: { type: String },
     registrationNumber: { type: String },
     accreditation: {
       NABH: { type: Boolean, default: false },

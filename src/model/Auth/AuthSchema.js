@@ -84,6 +84,11 @@ const userSchema = new mongoose.Schema(
       default : false
     },
 
+    hospitalId : {
+      type : mongoose.Schema.Types.ObjectId,
+      ref : "Hospital"
+    },
+
 
     aboutMe: {
       type: String,

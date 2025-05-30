@@ -4,9 +4,11 @@ import {
   cancelDoctorAppointment,
   foundAppointment,
   getAuthDetails,
+  getDoctorReviews,
   loginAuth,
   registerAuth,
   reset_password,
+  submitReview,
   updateAuth,
   verifyEmail,
   verifyOtp,
@@ -37,7 +39,7 @@ userRouter.put(
   "/update-details",
   upload.single("profileImage"),
   Token,
-  authorized("Patient"),
+  authorized("Patient", "Doctor"),
   updateAuth
 );
 
@@ -65,12 +67,27 @@ userRouter.get(
   foundAppointment
 );
 
-
 userRouter.put(
   "/cancel-appointment/:doctorId",
   Token,
   authorized("Patient", "Doctor"),
   cancelDoctorAppointment
+);
+
+// FOR RATING REVIEW WORK.....................................
+
+userRouter.post(
+  "/review-rating-doctors/:doctorId",
+  Token,
+  authorized("Patient", "Admin"),
+  submitReview
+);
+
+userRouter.get(
+  "/found-doctor-ratings/:doctorId",
+  Token,
+  authorized("Patient", "Doctor"),
+  getDoctorReviews
 );
 
 export default userRouter;

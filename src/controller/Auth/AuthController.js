@@ -6,14 +6,22 @@ import dotenv from "dotenv";
 import { sendOtpEmail } from "../../../utils/mail.js";
 import Appointment from "../../model/Appointment/BookAppointmentSchema.js";
 import moment from "moment";
+import Review from "../../model/Rating/ratingSchema.js";
 dotenv.config();
 
 // FOR USER AUTH RELATED FUNCTIONS.................................
 
 export const registerAuth = async (req, res) => {
   try {
-    const { fullName, email, password, mobileNumber, address, gender, updated_details } =
-      req.body;
+    const {
+      fullName,
+      email,
+      password,
+      mobileNumber,
+      address,
+      gender,
+      updated_details,
+    } = req.body;
 
     const checkAuth = await User.findOne({ email });
 
@@ -32,7 +40,7 @@ export const registerAuth = async (req, res) => {
       mobileNumber,
       address,
       gender,
-      updated_details
+      updated_details,
     });
 
     await authUser.save();
@@ -83,7 +91,7 @@ export const loginAuth = async (req, res) => {
       message: "Login successful!",
       authId: user._id,
       role: user.role,
-      updated_details : user.updated_details,
+      updated_details: user.updated_details,
       token,
     });
   } catch (error) {
@@ -103,9 +111,12 @@ export const getAuthDetails = async (req, res) => {
       return res.status(401).json({ message: "User ID not found in request" });
     }
 
-    const getDetails = await User.findOne({ _id: userId }).select(
-      "-password -isForget -otp"
-    );
+    const getDetails = await User.findOne({ _id: userId })
+      .populate({
+        path: "hospitalId",
+        select: "hospitalName",
+      })
+      .select("-password -isForget -otp");
 
     res.status(200).json({
       message: "auth details are:",
@@ -117,6 +128,64 @@ export const getAuthDetails = async (req, res) => {
     });
   }
 };
+
+// export const updateAuth = async (req, res) => {
+//   try {
+//     const userId = req.user.id;
+
+//     const {
+//       fullName,
+//       mobileNumber,
+//       address,
+//       gender,
+//       specilist,
+//       experience,
+//       workingHours,
+//       aboutMe,
+//       hospitalId,
+//     } = req.body;
+
+//     const profileImage = req.file ? req.file.filename : null;
+
+//     const checkUser = await User.findOne({ _id: userId });
+
+//     if (!checkUser) {
+//       return res.status(404).json({
+//         message: "Auth details not found",
+//       });
+//     }
+
+//     const updatedUser = await User.findOneAndUpdate(
+//       { _id: userId },
+//       {
+//         $set: {
+//           fullName,
+//           mobileNumber,
+//           updated_details: true,
+//           hospitalId,
+//           address,
+//           gender,
+//           specilist,
+//           experience,
+//           workingHours,
+//           aboutMe,
+//           profileImage,
+//         },
+//       },
+//       { new: true }
+//     ).select("-password -email");
+
+//     res.status(200).json({
+//       message: "Profile updated successfully",
+//       checkUser: updatedUser,
+//     });
+//   } catch (error) {
+//     console.error("Update error:", error);
+//     res.status(500).json({
+//       message: "Internal server error",
+//     });
+//   }
+// };
 
 export const updateAuth = async (req, res) => {
   try {
@@ -131,9 +200,8 @@ export const updateAuth = async (req, res) => {
       experience,
       workingHours,
       aboutMe,
+      hospitalId,
     } = req.body;
-
-    const profileImage = req.file ? req.file.filename : null;
 
     const checkUser = await User.findOne({ _id: userId });
 
@@ -143,22 +211,28 @@ export const updateAuth = async (req, res) => {
       });
     }
 
+    // Prepare update fields
+    const updateFields = {
+      fullName,
+      mobileNumber,
+      updated_details: true,
+      hospitalId,
+      address,
+      gender,
+      specilist,
+      experience,
+      workingHours,
+      aboutMe,
+    };
+
+    // If image file is uploaded, add to update fields
+    if (req.file && req.file.filename) {
+      updateFields.profileImage = req.file.filename;
+    }
+
     const updatedUser = await User.findOneAndUpdate(
       { _id: userId },
-      {
-        $set: {
-          fullName,
-          mobileNumber,
-          updated_details : true,
-          address,
-          gender,
-          specilist,
-          experience,
-          workingHours,
-          aboutMe,
-          profileImage,
-        },
-      },
+      { $set: updateFields },
       { new: true }
     ).select("-password -email");
 
@@ -302,39 +376,49 @@ export const reset_password = async (req, res) => {
 export const bookAppointment = async (req, res) => {
   try {
     const { doctorId } = req.params;
-    const userId = req.user.id;
-    const { appointmentDateTime } = req.body;
+    const userId = req.user?.id;
+    const { appointmentDate, appointmentTime } = req.body;
 
     if (!userId) {
       return res.status(401).json({ message: "User ID not found in request" });
     }
 
-    const appointmentStart = moment(appointmentDateTime, "DD-MM-YYYY HH:mm");
+    const startDateTime = moment(
+      `${appointmentDate} ${appointmentTime}`,
+      "DD-MM-YYYY HH:mm"
+    );
+    if (!startDateTime.isValid()) {
+      return res.status(400).json({ message: "Invalid date or time format" });
+    }
 
-    const appointmentEnd = moment(appointmentStart).add(30, "minutes");
+    const endDateTime = moment(startDateTime).add(30, "minutes");
+    const formattedStartTime = startDateTime.format("HH:mm");
+    const formattedEndTime = endDateTime.format("HH:mm");
 
     const overlappingAppointment = await Appointment.findOne({
       doctorId,
+      appointmentDate,
       status: "scheduled",
       $or: [
         {
-          appointmentDateTime: { $lt: appointmentEnd.toDate() },
-          appointmentEndTime: { $gt: appointmentStart.toDate() },
+          appointmentTime: { $lt: formattedEndTime },
+          appointmentEndTime: { $gt: formattedStartTime },
         },
       ],
     });
 
     if (overlappingAppointment) {
-      return res
-        .status(400)
-        .json({ message: "Doctor is already booked during this time slot." });
+      return res.status(400).json({
+        message: "Doctor is already booked during this time slot.",
+      });
     }
 
     const newAppointment = new Appointment({
       doctorId,
       userId,
-      appointmentDateTime: appointmentStart.toDate(),
-      appointmentEndTime: appointmentEnd.toDate(),
+      appointmentDate,
+      appointmentTime: formattedStartTime,
+      appointmentEndTime: formattedEndTime,
     });
 
     await newAppointment.save();
@@ -344,7 +428,8 @@ export const bookAppointment = async (req, res) => {
       appointment: newAppointment,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Error booking appointment:", error);
+    res.status(500).json({ message: "Server error. Please try again later." });
   }
 };
 
@@ -358,11 +443,11 @@ export const foundAppointment = async (req, res) => {
   const checkAppointment = await Appointment.find({ userId })
     .populate({
       path: "userId",
-      select: "fullName",
+      select: "fullName profileImage",
     })
     .populate({
       path: "doctorId",
-      select: "fullName",
+      select: "fullName profileImage",
     });
 
   const cancelAppointment = checkAppointment.filter(
@@ -387,41 +472,41 @@ export const foundAppointment = async (req, res) => {
   });
 };
 
-
 export const cancelDoctorAppointment = async (req, res) => {
-
-   try {
-    const userId = req.user.id;
+  try {
+    const userId = req.user?.id;
     const { doctorId } = req.params;
-    const { appointmentDateTime, reason  } = req.body;
+    const { appointmentDate, appointmentTime, reason } = req.body;
 
     if (!userId) {
       return res.status(401).json({ message: "User ID not found in request" });
     }
 
-    if (!appointmentDateTime) {
-      return res.status(400).json({ message: "appointmentDateTime is required" });
-    }
-
-    const parsedDate = moment(appointmentDateTime, "DD-MM-YYYY HH : mm", true);
-
-    if (!parsedDate.isValid()) {
-      return res.status(400).json({ message: "Invalid date format. Use DD-MM-YYYY HH : mm" });
-    }
+    const dateTime = moment(
+      `${appointmentDate} ${appointmentTime}`,
+      "DD-MM-YYYY HH:mm",
+      true
+    );
 
     const appointment = await Appointment.findOne({
       userId,
       doctorId,
-      appointmentDateTime: parsedDate.toDate(),
+      appointmentDate,
+      appointmentTime,
       status: { $in: ["scheduled", "upcoming"] },
     });
 
     if (!appointment) {
-      return res.status(404).json({ message: "No matching appointment found to cancel" });
+      return res.status(404).json({
+        message: "No matching appointment found to cancel",
+      });
     }
 
     appointment.status = "cancelled";
-     appointment.reason = reason;
+    if (reason) {
+      appointment.reason = reason;
+    }
+
     await appointment.save();
 
     res.status(200).json({
@@ -429,6 +514,80 @@ export const cancelDoctorAppointment = async (req, res) => {
       appointment,
     });
   } catch (error) {
+    console.error("Error cancelling appointment:", error);
+    res.status(500).json({ message: "Server error. Please try again later." });
+  }
+};
+
+// FOR RATING REVIEW FUNCTIONS.....................................
+export const submitReview = async (req, res) => {
+  try {
+    const { rating, reviewText } = req.body;
+    const { doctorId } = req.params;
+    const userId = req.user.id;
+
+    const existingReview = await Review.findOne({
+      doctorId,
+      user: userId,
+    });
+
+    if (existingReview) {
+      return res
+        .status(400)
+        .json({ message: "You have already reviewed this doctor." });
+    }
+
+    const review = new Review({
+      doctorId,
+      user: userId,
+      rating,
+      reviewText,
+    });
+    await review.save();
+
+    const reviews = await Review.find({ doctorId });
+
+    const numReviews = reviews.length;
+    const averageRating =
+      reviews.reduce((sum, r) => sum + r.rating, 0) / numReviews;
+
+    await User.findByIdAndUpdate(
+      doctorId,
+      {
+        averageRating,
+        numReviews,
+      },
+      { new: true }
+    );
+
+    res.status(200).json({ message: "Review submitted successfully." });
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
-}
+};
+
+export const getDoctorReviews = async (req, res) => {
+ 
+  try {
+    const { doctorId } = req.params;
+
+    const reviews = await Review.find({ doctorId })
+      .populate("user", "fullName profileImage")
+      .populate("doctorId", "fullName profileImage");
+
+    const numReviews = reviews.length;
+    const averageRating =
+      numReviews > 0
+        ? reviews.reduce((sum, r) => sum + r.rating, 0) / numReviews
+        : 0;
+
+    res.status(200).json({
+      averageRating: averageRating.toFixed(1),
+      numReviews,
+      reviews,
+    });
+    
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
