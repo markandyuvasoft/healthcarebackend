@@ -36,6 +36,25 @@ const AppointmentSchema = new mongoose.Schema(
       enum: ["upcoming", "scheduled", "complete", "cancelled"],
       default: "upcoming",
     },
+
+    selectPackage: [
+      {
+        durationTime: {
+          type: String,
+        },
+
+        packageName: {
+          type: String,
+        },
+        packagePrice: {
+          type: String,
+        },
+      },
+    ],
+
+    yourProblem: {
+      type: String,
+    },
   },
   { timestamps: true }
 );

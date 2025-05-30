@@ -17,7 +17,10 @@ import {
 import { Token } from "../../../middleware/checkAuth.js";
 import { authorized } from "../../../middleware/role.js";
 import { upload } from "../../../middleware/image.js";
-import { getAllDoctors } from "../../controller/Doctors/DoctorController.js";
+import {
+  foundDoctorAppointment,
+  getAllDoctors,
+} from "../../controller/Doctors/DoctorController.js";
 
 const userRouter = express.Router();
 
@@ -49,6 +52,13 @@ userRouter.get(
   Token,
   authorized("Patient", "Admin"),
   getAllDoctors
+);
+
+userRouter.get(
+  "/found-doctor-appointment/:doctorId",
+  Token,
+  authorized("Doctor", "Admin"),
+  foundDoctorAppointment
 );
 
 // FOR BOOKING WORK...................................

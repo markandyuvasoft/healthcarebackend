@@ -152,3 +152,64 @@
 //     res.status(500).json({ message: error.message });
 //   }
 // };
+
+
+
+
+// export const updateAuth = async (req, res) => {
+//   try {
+//     const userId = req.user.id;
+
+//     const {
+//       fullName,
+//       mobileNumber,
+//       address,
+//       gender,
+//       specilist,
+//       experience,
+//       workingHours,
+//       aboutMe,
+//       hospitalId,
+//     } = req.body;
+
+//     const profileImage = req.file ? req.file.filename : null;
+
+//     const checkUser = await User.findOne({ _id: userId });
+
+//     if (!checkUser) {
+//       return res.status(404).json({
+//         message: "Auth details not found",
+//       });
+//     }
+
+//     const updatedUser = await User.findOneAndUpdate(
+//       { _id: userId },
+//       {
+//         $set: {
+//           fullName,
+//           mobileNumber,
+//           updated_details: true,
+//           hospitalId,
+//           address,
+//           gender,
+//           specilist,
+//           experience,
+//           workingHours,
+//           aboutMe,
+//           profileImage,
+//         },
+//       },
+//       { new: true }
+//     ).select("-password -email");
+
+//     res.status(200).json({
+//       message: "Profile updated successfully",
+//       checkUser: updatedUser,
+//     });
+//   } catch (error) {
+//     console.error("Update error:", error);
+//     res.status(500).json({
+//       message: "Internal server error",
+//     });
+//   }
+// };

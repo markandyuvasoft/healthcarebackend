@@ -129,64 +129,6 @@ export const getAuthDetails = async (req, res) => {
   }
 };
 
-// export const updateAuth = async (req, res) => {
-//   try {
-//     const userId = req.user.id;
-
-//     const {
-//       fullName,
-//       mobileNumber,
-//       address,
-//       gender,
-//       specilist,
-//       experience,
-//       workingHours,
-//       aboutMe,
-//       hospitalId,
-//     } = req.body;
-
-//     const profileImage = req.file ? req.file.filename : null;
-
-//     const checkUser = await User.findOne({ _id: userId });
-
-//     if (!checkUser) {
-//       return res.status(404).json({
-//         message: "Auth details not found",
-//       });
-//     }
-
-//     const updatedUser = await User.findOneAndUpdate(
-//       { _id: userId },
-//       {
-//         $set: {
-//           fullName,
-//           mobileNumber,
-//           updated_details: true,
-//           hospitalId,
-//           address,
-//           gender,
-//           specilist,
-//           experience,
-//           workingHours,
-//           aboutMe,
-//           profileImage,
-//         },
-//       },
-//       { new: true }
-//     ).select("-password -email");
-
-//     res.status(200).json({
-//       message: "Profile updated successfully",
-//       checkUser: updatedUser,
-//     });
-//   } catch (error) {
-//     console.error("Update error:", error);
-//     res.status(500).json({
-//       message: "Internal server error",
-//     });
-//   }
-// };
-
 export const updateAuth = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -377,7 +319,8 @@ export const bookAppointment = async (req, res) => {
   try {
     const { doctorId } = req.params;
     const userId = req.user?.id;
-    const { appointmentDate, appointmentTime } = req.body;
+    const { appointmentDate, appointmentTime, selectPackage, yourProblem } =
+      req.body;
 
     if (!userId) {
       return res.status(401).json({ message: "User ID not found in request" });
@@ -419,6 +362,8 @@ export const bookAppointment = async (req, res) => {
       appointmentDate,
       appointmentTime: formattedStartTime,
       appointmentEndTime: formattedEndTime,
+      selectPackage,
+      yourProblem,
     });
 
     await newAppointment.save();
@@ -434,42 +379,47 @@ export const bookAppointment = async (req, res) => {
 };
 
 export const foundAppointment = async (req, res) => {
-  const userId = req.user.id;
+  try {
+    const userId = req.user.id;
 
-  if (!userId) {
-    return res.status(401).json({ message: "User ID not found in request" });
-  }
+    if (!userId) {
+      return res.status(401).json({ message: "User ID not found in request" });
+    }
 
-  const checkAppointment = await Appointment.find({ userId })
-    .populate({
-      path: "userId",
-      select: "fullName profileImage",
-    })
-    .populate({
-      path: "doctorId",
-      select: "fullName profileImage",
+    const checkAppointment = await Appointment.find({ userId })
+      .populate({
+        path: "userId",
+        select: "fullName profileImage",
+      })
+      .populate({
+        path: "doctorId",
+        select: "fullName profileImage",
+      });
+
+    const cancelAppointment = checkAppointment.filter(
+      (c) => c.status === "cancelled"
+    );
+    const upcomingAppointment = checkAppointment.filter(
+      (c) => c.status === "upcoming"
+    );
+    const scheduledAppointment = checkAppointment.filter(
+      (c) => c.status === "scheduled"
+    );
+    const completeAppointment = checkAppointment.filter(
+      (c) => c.status === "complete"
+    );
+
+    res.status(200).json({
+      message: "your appointments",
+      cancelAppointment: cancelAppointment,
+      upcomingAppointment: upcomingAppointment,
+      scheduledAppointment: scheduledAppointment,
+      completeAppointment: completeAppointment,
     });
-
-  const cancelAppointment = checkAppointment.filter(
-    (c) => c.status === "cancelled"
-  );
-  const upcomingAppointment = checkAppointment.filter(
-    (c) => c.status === "upcoming"
-  );
-  const scheduledAppointment = checkAppointment.filter(
-    (c) => c.status === "scheduled"
-  );
-  const completeAppointment = checkAppointment.filter(
-    (c) => c.status === "complete"
-  );
-
-  res.status(200).json({
-    message: "your appointments",
-    cancelAppointment: cancelAppointment,
-    upcomingAppointment: upcomingAppointment,
-    scheduledAppointment: scheduledAppointment,
-    completeAppointment: completeAppointment,
-  });
+  } catch (error) {
+    console.error("Error found appointment:", error);
+    res.status(500).json({ message: "Server error. Please try again later." });
+  }
 };
 
 export const cancelDoctorAppointment = async (req, res) => {
@@ -567,7 +517,6 @@ export const submitReview = async (req, res) => {
 };
 
 export const getDoctorReviews = async (req, res) => {
- 
   try {
     const { doctorId } = req.params;
 
@@ -586,7 +535,6 @@ export const getDoctorReviews = async (req, res) => {
       numReviews,
       reviews,
     });
-    
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
